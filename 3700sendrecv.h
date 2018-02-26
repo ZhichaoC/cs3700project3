@@ -17,7 +17,7 @@ typedef struct header_t {
   unsigned int sequence;
 } header;
 
-unsigned int MAGIC;
+extern unsigned int MAGIC;
 
 void dump_packet(unsigned char *data, int size);
 header *make_header(int sequence, int length, int eof, int ack);
