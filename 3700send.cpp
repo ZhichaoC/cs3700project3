@@ -2,6 +2,7 @@
  * CS3700, Spring 2015
  * Project 2 Starter Code
  */
+#include <iostream>
 
 #include <math.h>
 #include <ctype.h>
@@ -58,9 +59,9 @@ void *get_next_packet(int sequence, int *len) {
   return packet;
 }
 
-int send_next_packet(UDP_Socket sock, UDP_Address peer_addr) {
+int send_next_packet(UDP_Socket &sock, UDP_Address peer_addr) {
         int packet_len = 0;
-        void *packet = get_next_packet(sequence, &packet_len);
+        std::uint8_t *packet = (std::uint8_t *) get_next_packet(sequence, &packet_len);
 
         if (packet == NULL)
                 return 0;
@@ -68,7 +69,8 @@ int send_next_packet(UDP_Socket sock, UDP_Address peer_addr) {
         mylog("[send data] %d (%d)\n", sequence, packet_len - sizeof(header));
 
         try {
-                sock.sendto(peer_addr, std::vector<std::uint8_t>(packet, packet+packet_len));
+                std::vector<std::uint8_t> data(packet, packet+packet_len);
+                sock.sendto(peer_addr, data);
         } catch (...) {
                 perror("sendto");
                 exit(1);
@@ -77,12 +79,13 @@ int send_next_packet(UDP_Socket sock, UDP_Address peer_addr) {
         return 1;
 }
 
-void send_final_packet(UDP_Socket sock, UDP_Address peer_addr) {
+void send_final_packet(UDP_Socket &sock, UDP_Address peer_addr) {
   header *myheader = make_header(sequence+1, 0, 1, 0);
   mylog("[send eof]\n");
 
   try {
-          sock.sendto(peer_addr, std::vector<std::uint8_t>(header, header+sizeof(header)));
+	  std::vector<std::uint8_t> data(((std::uint8_t*) myheader), ((std::uint8_t*) myheader) + sizeof(header));
+          sock.sendto(peer_addr, data);
   } catch (...) {
           perror("sendto");
           exit(1);
@@ -106,33 +109,28 @@ int main(int argc, char *argv[]) {
                 int done = 0;
 
                 while (! done) {
-                        // wait to receive, or for a timeout
-                        // Select returns number of
-                        if (select(1, &socks, NULL, NULL, &t) <= 0) {
-                                mylog("[error] timeout occurred\n");
+                        std::vector<std::uint8_t> buf;
+                        buf.reserve(10000);
+                        try {
+                                mySocket.recvfrom(buf);
+                        }
+                        catch (...) {
+                              	mylog("[error] timeout occurred\n");
+                                // OR
+				perror("recvfrom");
+                                exit(1);
+                        }
+
+                        header *myheader = get_header(buf.data());
+
+			mylog("[ackinfo] (%d=%d) (%d=%d) (ack=%d, eof=%d)", myheader->magic, MAGIC, myheader->sequence, sequence, myheader->ack, myheader->eof);
+                        if ((myheader->magic == MAGIC) && (myheader->sequence >= sequence) && (myheader->ack == 1)) {
+                                mylog("[recv ack] %d\n", myheader->sequence);
+                                sequence = myheader->sequence;
+                                done = 1;
                         }
                         else {
-                                std::vector<std::uint8_t> buf;
-                                buf.reserve(10000);
-                                int received;
-                                try {
-                                        mySocket.recvfrom(buf)
-                                }
-                                catch (...) {
-                                        perror("recvfrom");
-                                        exit(1);
-                                }
-
-                                header *myheader = get_header(buf.data());
-
-                                if ((myheader->magic == MAGIC) && (myheader->sequence >= sequence) && (myheader->ack == 1)) {
-                                  mylog("[recv corrupted ack] %x %d\n", MAGIC, sequence);
-                                }
-                                else {
-                                  mylog("[recv ack] %d\n", myheader->sequence);
-                                  sequence = myheader->sequence;
-                                  done = 1;
-                                }
+                                mylog("[recv corrupted ack] %x %d\n", MAGIC, sequence);
                         }
                 }
         }

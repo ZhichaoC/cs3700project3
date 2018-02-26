@@ -41,7 +41,7 @@ int get_next_data(char *data, int size) {
  * if no more data is available.
  */
 void *get_next_packet(int sequence, int *len) {
-  char *data = malloc(DATA_SIZE);
+  char *data = (char*) malloc(DATA_SIZE);
   int data_len = get_next_data(data, DATA_SIZE);
 
   if (data_len == 0) {

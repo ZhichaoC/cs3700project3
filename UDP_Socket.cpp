@@ -13,7 +13,7 @@ UDP_Socket::UDP_Socket(void)
 	  local_address(UDP_Address("0.0.0.0", 0))
           {}
 
-UDP_Socket::~UDP_Socket(void) { close(this->sock_fd); }
+UDP_Socket::~UDP_Socket(void) { /*close(this->sock_fd);*/ }
 
 void UDP_Socket::bind(void) {
         this->bind(this->local_address);
@@ -48,13 +48,13 @@ void UDP_Socket::sendto(const UDP_Address &to, std::vector<std::uint8_t> data) {
        }
 }
 
-UDP_Address UDP_Socket::recvfrom(std::vector<std::uint8_t> buffer) {
+UDP_Address UDP_Socket::recvfrom(std::vector<std::uint8_t> &buffer) {
         // Use maximum availible capacity in the vector for buffering
         buffer.resize(buffer.capacity());
 
         struct sockaddr_in sockaddr;
 	socklen_t sockaddr_size = sizeof(sockaddr_in);
-        if (::recvfrom(this->sock_fd, buffer.data(), buffer.capacity(), 0,
+        if (::recvfrom(this->sock_fd, buffer.data(), buffer.size(), 0,
                  (struct sockaddr *) &sockaddr, &sockaddr_size) == -1) {
                  throw 4;
          }

@@ -2,6 +2,7 @@
 #define UDP_SOCKET_H_
 
 #include <cstdint>
+#include <exception>
 #include <string>
 #include <vector>
 
@@ -16,7 +17,8 @@ public:
 	UDP_Address(std::string ip, std::uint16_t port) : ip(ip), port(port) {}
 
         inline static UDP_Address from_sockaddr(const sockaddr_in & sockaddr) {
-                return UDP_Address(inet_ntop(AF_INET, &sockaddr.sin_addr.s_addr, (char*)malloc(sizeof(char)*INET_ADDRSTRLEN), INET_ADDRSTRLEN), sockaddr.sin_port);
+		// MEMORY LEAK
+                return UDP_Address(inet_ntop(AF_INET, &sockaddr.sin_addr.s_addr, (char*)malloc(sizeof(char)*INET_ADDRSTRLEN), INET_ADDRSTRLEN), ntohs(sockaddr.sin_port));
         }
 
         inline sockaddr_in to_sockaddr(void) const {
@@ -42,7 +44,7 @@ public:
         void set_timeout(std::uint8_t seconds, std::uint32_t microseconds);
 
         void sendto(const UDP_Address &to, std::vector<std::uint8_t> data);
-        UDP_Address recvfrom(std::vector<std::uint8_t> buffer);
+        UDP_Address recvfrom(std::vector<std::uint8_t> &buffer);
 };
 
 #endif // UDP_SOCKET_H_
