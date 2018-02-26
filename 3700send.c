@@ -25,11 +25,6 @@ static int DATA_SIZE = 1460;
 
 unsigned int sequence = 0;
 
-void usage() {
-  printf("Usage: 3700send host:port\n");
-  exit(1);
-}
-
 /**
  * Reads the next block of data from stdin
  */
@@ -63,114 +58,88 @@ void *get_next_packet(int sequence, int *len) {
   return packet;
 }
 
-int send_next_packet(int sock, struct sockaddr_in out) {
-  int packet_len = 0;
-  void *packet = get_next_packet(sequence, &packet_len);
+int send_next_packet(UDP_Socket sock, UDP_Address peer_addr) {
+        int packet_len = 0;
+        void *packet = get_next_packet(sequence, &packet_len);
 
-  if (packet == NULL) 
-    return 0;
+        if (packet == NULL)
+                return 0;
 
-  mylog("[send data] %d (%d)\n", sequence, packet_len - sizeof(header));
+        mylog("[send data] %d (%d)\n", sequence, packet_len - sizeof(header));
 
-  if (sendto(sock, packet, packet_len, 0, (struct sockaddr *) &out, (socklen_t) sizeof(out)) < 0) {
-    perror("sendto");
-    exit(1);
-  }
+        try {
+                sock.sendto(peer_addr, std::vector<std::uint8_t>(packet, packet+packet_len));
+        } catch (...) {
+                perror("sendto");
+                exit(1);
+        }
 
-  return 1;
+        return 1;
 }
 
-void send_final_packet(int sock, struct sockaddr_in out) {
+void send_final_packet(UDP_Socket sock, UDP_Address peer_addr) {
   header *myheader = make_header(sequence+1, 0, 1, 0);
   mylog("[send eof]\n");
 
-  if (sendto(sock, myheader, sizeof(header), 0, (struct sockaddr *) &out, (socklen_t) sizeof(out)) < 0) {
-    perror("sendto");
-    exit(1);
+  try {
+          sock.sendto(peer_addr, std::vector<std::uint8_t>(header, header+sizeof(header)));
+  } catch (...) {
+          perror("sendto");
+          exit(1);
   }
 }
 
 int main(int argc, char *argv[]) {
-  /**
-   * I've included some basic code for opening a UDP socket in C, 
-   * binding to a empheral port, printing out the port number.
-   * 
-   * I've also included a very simple transport protocol that simply
-   * acknowledges every received packet.  It has a header, but does
-   * not do any error handling (i.e., it does not have sequence 
-   * numbers, timeouts, retries, a "window"). You will
-   * need to fill in many of the details, but this should be enough to
-   * get you started.
-   */
+        char *tmp = (char *) malloc(strlen(argv[1])+1);
+        strcpy(tmp, argv[1]);
 
-  // extract the host IP and port
-  if ((argc != 2) || (strstr(argv[1], ":") == NULL)) {
-    usage();
-  }
+        char *ip_s = strtok(tmp, ":");
+        char *port_s = strtok(NULL, ":");
 
-  char *tmp = (char *) malloc(strlen(argv[1])+1);
-  strcpy(tmp, argv[1]);
+        UDP_Socket mySocket;
+        mySocket.bind();
+        mySocket.set_timeout(30, 0);
 
-  char *ip_s = strtok(tmp, ":");
-  char *port_s = strtok(NULL, ":");
+        UDP_Address peer_addr(ip_s, atoi(port_s));
 
-  UDP_Socket mySocket; 
-  // first, open a UDP socket  
-  int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        while (send_next_packet(mySocket, peer_addr)) {
+                int done = 0;
 
-  // next, construct the local port
-  struct sockaddr_in out;
-  out.sin_family = AF_INET;
-  out.sin_port = htons(atoi(port_s));
-  out.sin_addr.s_addr = inet_addr(ip_s);
+                while (! done) {
+                        // wait to receive, or for a timeout
+                        // Select returns number of
+                        if (select(1, &socks, NULL, NULL, &t) <= 0) {
+                                mylog("[error] timeout occurred\n");
+                        }
+                        else {
+                                std::vector<std::uint8_t> buf;
+                                buf.reserve(10000);
+                                int received;
+                                try {
+                                        mySocket.recvfrom(buf)
+                                }
+                                catch (...) {
+                                        perror("recvfrom");
+                                        exit(1);
+                                }
 
-  // socket for received packets
-  struct sockaddr_in in;
-  socklen_t in_len = sizeof(in);
+                                header *myheader = get_header(buf.data());
 
-  // construct the socket set
-  fd_set socks;
-
-  // construct the timeout
-  struct timeval t;
-  t.tv_sec = 30;
-  t.tv_usec = 0;
-
-  while (send_next_packet(sock, out)) {
-    int done = 0;
-
-    while (! done) {
-      FD_ZERO(&socks);
-      FD_SET(sock, &socks);
-
-      // wait to receive, or for a timeout
-      if (select(sock + 1, &socks, NULL, NULL, &t)) {
-        unsigned char buf[10000];
-        int buf_len = sizeof(buf);
-        int received;
-        if ((received = recvfrom(sock, &buf, buf_len, 0, (struct sockaddr *) &in, (socklen_t *) &in_len)) < 0) {
-          perror("recvfrom");
-          exit(1);
+                                if ((myheader->magic == MAGIC) && (myheader->sequence >= sequence) && (myheader->ack == 1)) {
+                                  mylog("[recv corrupted ack] %x %d\n", MAGIC, sequence);
+                                }
+                                else {
+                                  mylog("[recv ack] %d\n", myheader->sequence);
+                                  sequence = myheader->sequence;
+                                  done = 1;
+                                }
+                        }
+                }
         }
 
-        header *myheader = get_header(buf);
+        send_final_packet(mySocket, peer_addr);
 
-        if ((myheader->magic == MAGIC) && (myheader->sequence >= sequence) && (myheader->ack == 1)) {
-          mylog("[recv ack] %d\n", myheader->sequence);
-          sequence = myheader->sequence;
-          done = 1;
-        } else {
-          mylog("[recv corrupted ack] %x %d\n", MAGIC, sequence);
-        }
-      } else {
-        mylog("[error] timeout occurred\n");
-      }
-    }
-  }
+        mylog("[completed]\n");
 
-  send_final_packet(sock, out);
-
-  mylog("[completed]\n");
-
-  return 0;
+        return 0;
 }
