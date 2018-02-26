@@ -2,23 +2,29 @@
 #define UDP_SOCKET_H_
 
 #include <cstdint>
-#include <sstream>
+#include <string>
+#include <vector>
 
 #include <arpa/inet.h>
+#include <stdlib.h>
 
 class UDP_Address {
 public:
         std::string ip;
         std::uint16_t port;
 
+	UDP_Address(std::string ip, std::uint16_t port) : ip(ip), port(port) {}
+
         inline static UDP_Address from_sockaddr(const sockaddr_in & sockaddr) {
-                return UDP_Address(inet_ntop(sockaddr.sin_addr.s_addr), sockaddr.sin_port);
+                return UDP_Address(inet_ntop(AF_INET, &sockaddr.sin_addr.s_addr, (char*)malloc(sizeof(char)*INET_ADDRSTRLEN), INET_ADDRSTRLEN), sockaddr.sin_port);
         }
 
         inline sockaddr_in to_sockaddr(void) const {
-                return {.sin_family = AF_INET,
-                        .sin_port = htons(this->port),
-                        .sin_addr = {.s_addr = inet_addr( this->ip.c_str() )}};
+                sockaddr_in sockaddr;
+		sockaddr.sin_family = AF_INET;
+		sockaddr.sin_port = htons(this->port);
+                sockaddr.sin_addr.s_addr = inet_addr( this->ip.c_str() );
+                return sockaddr;
         }
 };
 
@@ -35,8 +41,8 @@ public:
 
         void set_timeout(std::uint8_t seconds, std::uint32_t microseconds);
 
-        void sendto(const local_address & to);
-        void recvfrom(const local_address & from);
+        void sendto(const UDP_Address &to, std::vector<std::uint8_t> data);
+        UDP_Address recvfrom(std::vector<std::uint8_t> buffer);
 };
 
 #endif // UDP_SOCKET_H_
