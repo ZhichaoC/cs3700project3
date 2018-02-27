@@ -17,6 +17,8 @@
 #include "3700sendrecv.h"
 #include "UDP_Socket.h"
 #include "BasicMessage.h"
+#include "BasicSender.h"
+
 
 static int DATA_SIZE = 1460;
 
@@ -100,6 +102,14 @@ int main(int argc, char *argv[]) {
         mySocket.set_timeout(30, 0);
 
         UDP_Address peer_addr(ip_s, atoi(port_s));
+
+        BasicSender sender;
+        /*sender.timeout_handler = []{ mylog("[error] timeout occurred\n"); };
+        sender.corrupt_ack_handler = []{ mylog("[recv corrupted ack] %x %d\n", MAGIC, sequence); };
+        sender.completed_handler = []{ mylog("[completed]\n"); };
+        sender.ack_handler = []{ mylog("[recv ack] %d\n", myheader->sequence); };
+        sender.eof_handler = []{ mylog("[send ack]\n"); };
+        sender.data_handler = []{ mylog("[send data] %d (%d)\n", sequence, packet_len - sizeof(header)); };*/
 
         while (send_next_packet(mySocket, peer_addr)) {
                 int done = 0;
