@@ -123,7 +123,6 @@ int main(int argc, char *argv[]) {
 
                         header *myheader = get_header(buf.data());
 
-			mylog("[ackinfo] (%d=%d) (%d=%d) (ack=%d, eof=%d)", myheader->magic, MAGIC, myheader->sequence, sequence, myheader->ack, myheader->eof);
                         if ((myheader->magic == MAGIC) && (myheader->sequence >= sequence) && (myheader->ack == 1)) {
                                 mylog("[recv ack] %d\n", myheader->sequence);
                                 sequence = myheader->sequence;

@@ -11,10 +11,14 @@
 
 UDP_Socket::UDP_Socket(void)
         : sock_fd(socket(AF_INET, SOCK_DGRAM, 0)),
-	  local_address(UDP_Address("0.0.0.0", 0))
+	  local_address(UDP_Address())
           {}
 
-UDP_Socket::~UDP_Socket(void) { /*close(this->sock_fd);*/ }
+UDP_Socket::~UDP_Socket(void) {
+	if (this->sock_fd < 0) {
+		close(this->sock_fd);
+	}
+}
 
 void UDP_Socket::bind(void) {
         this->bind(this->local_address);
@@ -41,7 +45,7 @@ void UDP_Socket::set_timeout(std::uint8_t seconds, std::uint32_t microseconds) {
         }
 }
 
-void UDP_Socket::sendto(const UDP_Address &to, std::vector<std::uint8_t> data) {
+void UDP_Socket::sendto(const UDP_Address &to, const std::vector<std::uint8_t> &data) {
         auto sockaddr = to.to_sockaddr();
         if (::sendto(this->sock_fd, data.data(), data.size(), 0,
                (struct sockaddr *) &sockaddr, (socklen_t) sizeof(sockaddr)) == -1) {
