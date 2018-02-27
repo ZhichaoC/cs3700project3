@@ -45,6 +45,7 @@ public:
 		this->sock_fd = rhs.sock_fd;
 		rhs.sock_fd = -1;
 		this->local_address = rhs.local_address;
+		return *this;
 	}
         ~UDP_Socket(void);
 
