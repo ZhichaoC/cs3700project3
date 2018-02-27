@@ -1,5 +1,6 @@
 #include <cstddef>
 
+#include <errno.h>
 #include <netinet/ip.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -56,7 +57,11 @@ UDP_Address UDP_Socket::recvfrom(std::vector<std::uint8_t> &buffer) {
 	socklen_t sockaddr_size = sizeof(sockaddr_in);
         if (::recvfrom(this->sock_fd, buffer.data(), buffer.size(), 0,
                  (struct sockaddr *) &sockaddr, &sockaddr_size) == -1) {
-                 throw 4;
+                if (errno == ETIMEDOUT) {
+                        throw 9;
+                } else {
+                        throw 4;
+                }
          }
 
 	return UDP_Address::from_sockaddr(sockaddr);
