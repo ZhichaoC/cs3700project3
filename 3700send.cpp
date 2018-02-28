@@ -27,7 +27,7 @@ unsigned int sequence = 0;
 /**
  * Reads the next block of data from stdin
  */
-int get_next_data(char *data, int size) {
+int get_next_data(std::uint8_t *data, int size) {
   return read(0, data, size);
 }
 
@@ -35,39 +35,26 @@ int get_next_data(char *data, int size) {
  * Builds and returns the next packet, or NULL
  * if no more data is available.
  */
-void *get_next_packet(int sequence, int *len) {
-  char *data = (char *) malloc(DATA_SIZE);
-  int data_len = get_next_data(data, DATA_SIZE);
+BasicMessage get_next_packet(int sequence) {
+	const bool ack = false, eof = false;
+	const size_t mss = 1460 - sizeof(BasicMessage::Header);
+	BasicMessage message(ack, eof, sequence, mss);
+	auto data_len = get_next_data(message.get_data(), mss);
+	message.set_length(data_len);
 
-  if (data_len == 0) {
-    free(data);
-    return NULL;
-  }
-
-  header *myheader = make_header(sequence, data_len, 0, 0);
-  void *packet = malloc(sizeof(header) + data_len);
-  memcpy(packet, myheader, sizeof(header));
-  memcpy(((char *) packet) +sizeof(header), data, data_len);
-
-  free(data);
-  free(myheader);
-
-  *len = sizeof(header) + data_len;
-
-  return packet;
+	return message;
 }
 
 int send_next_packet(UDP_Socket &sock, UDP_Address peer_addr) {
-        int packet_len = 0;
-        std::uint8_t *packet = (std::uint8_t *) get_next_packet(sequence, &packet_len);
+        auto message = get_next_packet(sequence);
 
-        if (packet == NULL)
+        if (message.get_length() == 0)
                 return 0;
 
-        mylog("[send data] %d (%d)\n", sequence, packet_len - sizeof(header));
+        mylog("[send data] %d (%d)\n", sequence, message.get_length());
 
         try {
-                std::vector<std::uint8_t> data(packet, packet+packet_len);
+                std::vector<std::uint8_t> data(message.data, message.data + sizeof(BasicMessage::Header)+message.get_length());
                 sock.sendto(peer_addr, data);
         } catch (...) {
                 perror("sendto");
@@ -103,13 +90,14 @@ int main(int argc, char *argv[]) {
 
         UDP_Address peer_addr(ip_s, atoi(port_s));
 
-        BasicSender sender;
+        BasicSender<BasicMessage> sender;
         /*sender.timeout_handler = []{ mylog("[error] timeout occurred\n"); };
         sender.corrupt_ack_handler = []{ mylog("[recv corrupted ack] %x %d\n", MAGIC, sequence); };
         sender.completed_handler = []{ mylog("[completed]\n"); };
         sender.ack_handler = []{ mylog("[recv ack] %d\n", myheader->sequence); };
         sender.eof_handler = []{ mylog("[send ack]\n"); };
         sender.data_handler = []{ mylog("[send data] %d (%d)\n", sequence, packet_len - sizeof(header)); };*/
+	//sender.transmit(std::cin, mySocket);
 
         while (send_next_packet(mySocket, peer_addr)) {
                 int done = 0;
