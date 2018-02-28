@@ -1,7 +1,3 @@
-/*
- * CS3700, Spring 2015
- * Project 2 Starter Code
- */
 #include <iostream>
 
 #include <math.h>
@@ -29,25 +25,26 @@ int main(int argc, char *argv[]) {
 
         UDP_Socket mySocket;
         mySocket.bind();
-        mySocket.set_timeout(30, 0);
+        mySocket.set_timeout(30/*sec*/, 0 /*usec*/);
 
         UDP_Address peer_addr(ip_s, atoi(port_s));
 
-        BasicSender<BasicMessage> sender;
-        sender.timeout_handler = []{ mylog("[error] timeout occurred\n"); };
-        sender.corrupt_ack_handler = [](int magic, int sequence) {
-                mylog("[recv corrupted ack] %x %d\n", magic, sequence);
-        };
-        sender.completed_handler = []{ mylog("[completed]\n"); };
-        sender.ack_handler = [](int sequence) {
-                mylog("[recv ack] %d\n", sequence);
-        };
-        sender.eof_handler = []{ mylog("[send eof]\n"); };
-        sender.data_handler = [](int sequence, int data_len) {
-                mylog("[send data] %d (%d)\n", sequence, data_len);
-        };
-	sender.transmit(std::cin, mySocket);
+        BasicSender<BasicMessage> sender(1460, peer_addr, std::move(mySocket));
 
+        sender.timeout_handler = []
+		{ mylog("[error] timeout occurred\n"); };
+        sender.corrupt_ack_handler = [](int magic, int sequence)
+		{ mylog("[recv corrupted ack] %x %d\n", magic, sequence); };
+        sender.completed_handler = []
+		{ mylog("[completed]\n"); };
+        sender.recv_ack_handler = [](int sequence)
+		{ mylog("[recv ack] %d\n", sequence); };
+        sender.send_eof_handler = []
+		{ mylog("[send eof]\n"); };
+        sender.send_data_handler = [](int sequence, int data_len)
+		{ mylog("[send data] %d (%d)\n", sequence, data_len); };
+
+	sender.transmit(std::cin);
 
         return 0;
 }

@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 
-class TimeoutException : public std::Exception {};
+class TimeoutException : public std::exception {};
 
 class UDP_Address {
 public:
@@ -55,8 +55,8 @@ public:
 
         void set_timeout(std::uint8_t seconds, std::uint32_t microseconds);
 
-        void sendto(const UDP_Address &to, const std::vector<std::uint8_t> &data);
-        UDP_Address recvfrom(std::vector<std::uint8_t> &buffer);
+        void sendto(const UDP_Address &to, std::uint8_t *data, size_t data_len);
+        UDP_Address recvfrom(std::uint8_t *buffer, std::int64_t *buffer_len);
 };
 
 #endif // UDP_SOCKET_H_

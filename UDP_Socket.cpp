@@ -45,22 +45,20 @@ void UDP_Socket::set_timeout(std::uint8_t seconds, std::uint32_t microseconds) {
         }
 }
 
-void UDP_Socket::sendto(const UDP_Address &to, const std::vector<std::uint8_t> &data) {
+void UDP_Socket::sendto(const UDP_Address &to, std::uint8_t *data, size_t data_len) {
         auto sockaddr = to.to_sockaddr();
-        if (::sendto(this->sock_fd, data.data(), data.size(), 0,
+        if (::sendto(this->sock_fd, data, data_len, 0,
                (struct sockaddr *) &sockaddr, (socklen_t) sizeof(sockaddr)) == -1) {
                throw 3;
        }
 }
 
-UDP_Address UDP_Socket::recvfrom(std::vector<std::uint8_t> &buffer) {
-        // Use maximum availible capacity in the vector for buffering
-        buffer.resize(buffer.capacity());
-
+UDP_Address UDP_Socket::recvfrom(std::uint8_t *buffer, std::int64_t *buffer_len) {
         struct sockaddr_in sockaddr;
 	socklen_t sockaddr_size = sizeof(sockaddr_in);
-        if (::recvfrom(this->sock_fd, buffer.data(), buffer.size(), 0,
-                 (struct sockaddr *) &sockaddr, &sockaddr_size) == -1) {
+	*buffer_len = ::recvfrom(this->sock_fd, buffer, *buffer_len, 0,
+                 (struct sockaddr *) &sockaddr, &sockaddr_size); 
+        if (*buffer_len == -1) {
                 if (errno == ETIMEDOUT) {
                         throw TimeoutException();
                 } else {

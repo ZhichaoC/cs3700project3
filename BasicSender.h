@@ -6,45 +6,42 @@ template<typename MessageClass>
 class BasicSender {
         size_t packet_size, mss;
         std::uint32_t sequence;
+	UDP_Socket sock;
+	UDP_Address peer_addr;
 public:
-        BasicSender(size_t mss) : packet_size(mss), mss(mss - sizeof(MessageClass::Header)), sequence(0) {}
+        BasicSender(size_t mss, UDP_Address peer_addr, UDP_Socket&& sock)
+		: packet_size(mss), mss(mss - sizeof(typename MessageClass::Header)), sequence(0), sock(std::move(sock)), peer_addr(peer_addr) {}
 
         std::function<void(void)> timeout_handler, send_eof_handler, completed_handler;
 
         std::function<void(int, int)> corrupt_ack_handler, send_data_handler;
         std::function<void(int)> recv_ack_handler;
 
-        inline bool BasicSender::is_valid(const MessageClass &message) {
+        inline bool is_valid(const MessageClass &message) {
                 return message.is_valid() &&
-                       (messsage.get_sequence() >= sequence) &&
-                       (message.is_ack() == true);
+                       (message.get_sequence() >= this->sequence) &&
+                       (message.is_ack());
         }
 
         MessageClass extract_packet(std::istream &stream) {
                 const bool ack = false, eof = false;
                 BasicMessage message(ack, eof, sequence, this->mss);
 
-                auto data_len = stream.read(message.get_data(), this->mss);
+                stream.read(((char*)message.get_data()), this->mss);
                 message.set_length(stream.gcount());
 
                 return message;
         }
 
         void send_eof(void) {
-                MessageClass eof_message;
-                eof_message.set_eof(true);
-                eof_message.set_sequence(this->sequence++);
-
-                std::vector<std::uint8_t> data(((std::uint8_t*) myheader),
-                                               ((std::uint8_t*) myheader) + sizeof(header));
-                sock.sendto(peer_addr, data);
-
-                this->eof_handler();
+                MessageClass eof_message(false, true, this->sequence++, 0);
+                this->sock.sendto(this->peer_addr, eof_message.data, eof_message.get_length()+sizeof(typename MessageClass::Header));
+                this->send_eof_handler();
         }
 
 
 
-        void transmit(std::istream &stream, UDP_Socket &sock) {
+        void transmit(std::istream &stream) {
                 while (!stream.eof()) {
                         auto data_message = this->extract_packet(stream);
                         // EOF is thrown when EOF is read, so possible for last read
@@ -53,29 +50,27 @@ public:
                         if (data_message.get_length() == 0) {
                                 break;
                         }
-                        std::vector<std::uint8_t> data(message.data, message.data + sizeof(BasicMessage::Header)+message.get_length());
-                        sock.sendto(peer_addr, data);
-                        this->data_handler(this->sequence, message.get_length());
+                        this->sock.sendto(this->peer_addr, data_message.data, data_message.get_length()+sizeof(typename MessageClass::Header));
+                        this->send_data_handler(this->sequence, data_message.get_length());
 
                         while (true) {
-                                std::vector<std::uint8_t> buf;
-                                buf.reserve(this->packet_size);
+				std::int64_t buffer_read = this->packet_size;
+                                std::uint8_t *buffer = (std::uint8_t *) malloc(this->packet_size);
                                 try {
-                                        mySocket.recvfrom(buf);
+                                        this->sock.recvfrom(buffer, &buffer_read);
                                 }
                                 catch (TimeoutException &e) {
                                       	this->timeout_handler();
                                 }
 
-                                MessageClass recv_message(buf.data());
+                                MessageClass recv_message(buffer);
 
                                 if (!this->is_valid(recv_message)) {
-                                        this->corrupt_ack_handler(header->magic, sequence);
+                                        this->corrupt_ack_handler(recv_message.get_magic(), sequence);
                                 }
                                 else {
-                                        this->ack_handler(myheader->sequence);
-                                        sequence = myheader->sequence;
-                                        done = true;
+                                        this->recv_ack_handler(recv_message.get_sequence());
+                                        sequence = recv_message.get_sequence();
 
                                         break;
                                 }

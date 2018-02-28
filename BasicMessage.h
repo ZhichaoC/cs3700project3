@@ -17,6 +17,7 @@ public:
 	static_assert(alignof(Header) == 4, "BasicMessage not four byte aligned");
 
 private:
+	inline const Header& header_cref(void) const {return (const Header&)*data; }
 	inline Header& header_ref(void) {return (Header&)*data; }
 
 public:
@@ -30,32 +31,32 @@ public:
         BasicMessage(std::uint8_t *data) : data(data) {};
 	~BasicMessage(void) { free(data); }
 
-        inline MagicType get_magic(void)
-                { return this->header_ref().magic; }
+        inline MagicType get_magic(void) const
+                { return this->header_cref().magic; }
         inline void set_magic(MagicType magic)
                 { this->header_ref().magic = magic; }
 
-	inline bool is_ack(void)
-                { return this->header_ref().ack; }
+	inline bool is_ack(void) const
+                { return this->header_cref().ack; }
         inline void set_ack(bool ack)
                 { this->header_ref().ack = ack; }
 
-        inline bool is_eof(void)
-                { return this->header_ref().eof; }
+        inline bool is_eof(void) const
+                { return this->header_cref().eof; }
 	inline void set_eof(bool eof)
 		{ this->header_ref().eof = eof;}
 
-        inline LengthType get_length(void)
-                { return ntohs(this->header_ref().length); }
+        inline LengthType get_length(void) const
+                { return ntohs(this->header_cref().length); }
         inline void set_length(LengthType length)
                 { this->header_ref().length = htons(length); }
 
-        inline SequenceType get_sequence(void)
-                { return ntohl(this->header_ref().sequence); }
+        inline SequenceType get_sequence(void) const
+                { return ntohl(this->header_cref().sequence); }
         inline void set_sequence(SequenceType sequence)
                 { this->header_ref().sequence = htonl(sequence); }
 
-	inline bool is_valid(void)
+	inline bool is_valid(void) const
                 { return this->get_magic() == BasicMessage::MAGIC; }
 
 	inline std::uint8_t *get_data(void) { return this->data + sizeof(Header); }
