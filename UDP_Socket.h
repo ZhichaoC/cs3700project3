@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 
+class TimeoutException : public std::Exception {};
 
 class UDP_Address {
 public:

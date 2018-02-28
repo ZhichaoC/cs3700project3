@@ -62,7 +62,7 @@ UDP_Address UDP_Socket::recvfrom(std::vector<std::uint8_t> &buffer) {
         if (::recvfrom(this->sock_fd, buffer.data(), buffer.size(), 0,
                  (struct sockaddr *) &sockaddr, &sockaddr_size) == -1) {
                 if (errno == ETIMEDOUT) {
-                        throw 9;
+                        throw TimeoutException();
                 } else {
                         throw 4;
                 }
