@@ -1,3 +1,6 @@
+#ifndef BASIC_SENDER_H_
+#define BASIC_SENDER_H_
+
 #include <cstdint>
 #include <functional>
 #include <iostream>
@@ -13,9 +16,8 @@ public:
 		: packet_size(mss), mss(mss - sizeof(typename MessageClass::Header)), sequence(0), sock(std::move(sock)), peer_addr(peer_addr) {}
 
         std::function<void(void)> timeout_handler, send_eof_handler, completed_handler;
-
-        std::function<void(int, int)> corrupt_ack_handler, send_data_handler;
         std::function<void(int)> recv_ack_handler;
+        std::function<void(int, int)> corrupt_ack_handler, send_data_handler;
 
         inline bool is_valid(const MessageClass &message) {
                 return message.is_valid() &&
@@ -35,11 +37,9 @@ public:
 
         void send_eof(void) {
                 MessageClass eof_message(false, true, this->sequence++, 0);
-                this->sock.sendto(this->peer_addr, eof_message.data, eof_message.get_length()+sizeof(typename MessageClass::Header));
+                this->sock.sendto(this->peer_addr, eof_message.data, eof_message.get_total_length());
                 this->send_eof_handler();
         }
-
-
 
         void transmit(std::istream &stream) {
                 while (!stream.eof()) {
@@ -50,7 +50,7 @@ public:
                         if (data_message.get_length() == 0) {
                                 break;
                         }
-                        this->sock.sendto(this->peer_addr, data_message.data, data_message.get_length()+sizeof(typename MessageClass::Header));
+                        this->sock.sendto(this->peer_addr, data_message.data, data_message.get_total_length());
                         this->send_data_handler(this->sequence, data_message.get_length());
 
                         while (true) {
@@ -82,3 +82,5 @@ public:
         }
 
 };
+
+#endif//BASIC_SENDER_H_

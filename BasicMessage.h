@@ -1,5 +1,11 @@
+#ifndef BASIC_MESSAGE_H_
+#define BASIC_MESSAGE_H_
+
 #include <cstdint>
 
+/**
+ * How this class operates is by accessing 
+ */
 class BasicMessage {
 public:
         typedef std::uint16_t MagicType;
@@ -16,20 +22,25 @@ public:
 	static_assert(sizeof(Header) == 8, "BasicMessage not eight bytes in size");
 	static_assert(alignof(Header) == 4, "BasicMessage not four byte aligned");
 
+	std::uint8_t *data;
+
 private:
 	inline const Header& header_cref(void) const {return (const Header&)*data; }
 	inline Header& header_ref(void) {return (Header&)*data; }
 
 public:
-	std::uint8_t *data;
         BasicMessage(bool ack, bool eof, SequenceType sequence)
         	: BasicMessage(ack, eof, sequence, 0) {};
         BasicMessage(bool ack, bool eof, SequenceType sequence, size_t mss)
 		: data((std::uint8_t*)malloc(sizeof(Header)+mss)) {
 		this->header_ref() = {MAGIC, ack, eof, 0, htonl(sequence)};
 	}
-        BasicMessage(std::uint8_t *data) : data(data) {};
-	~BasicMessage(void) { free(data); }
+        BasicMessage(std::uint8_t *data) : data(data) {}
+	~BasicMessage(void) { if (data != nullptr) { free(data); } }
+
+	/**
+	 *  Accessors and Setters
+	 */
 
         inline MagicType get_magic(void) const
                 { return this->header_cref().magic; }
@@ -56,9 +67,18 @@ public:
         inline void set_sequence(SequenceType sequence)
                 { this->header_ref().sequence = htonl(sequence); }
 
+	/**
+	 * Conditions, data pointer, total length of message
+	 */
+
 	inline bool is_valid(void) const
                 { return this->get_magic() == BasicMessage::MAGIC; }
 
-	inline std::uint8_t *get_data(void) { return this->data + sizeof(Header); }
-	//inline void assign_data(std::uint8_t *data, size_t length) { free(this->data); this->data=data; this->set_length(length); }
+	inline std::uint8_t *get_data(void)
+		{ return this->data + sizeof(Header); }
+
+        inline size_t get_total_length(void) const
+                { return sizeof(Header) + this->get_length(); }
 };
+
+#endif //BASIC_MESSAGE_H_

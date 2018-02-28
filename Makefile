@@ -14,7 +14,7 @@ $(SENDRECV).o: $(SENDRECV).c
 $(SEND): $(SEND).cpp $(SENDRECV).o $(SOCK).o
 	g++ -std=c++11 -O0 -g -lm -Wall -pedantic -Wextra -o $@ $< $(SENDRECV).o $(SOCK).o
 
-$(RECV): $(RECV).c $(SENDRECV).o $(SOCK).o
+$(RECV): $(RECV).cpp $(SENDRECV).o $(SOCK).o
 	g++ -std=c++11 -O0 -g -lm -Wall -pedantic -Wextra -o $@ $< $(SENDRECV).o $(SOCK).o
 
 test: all

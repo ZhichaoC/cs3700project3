@@ -8,22 +8,6 @@
 
 #include "UDP_Socket.h"
 
-
-UDP_Socket::UDP_Socket(void)
-        : sock_fd(socket(AF_INET, SOCK_DGRAM, 0)),
-	  local_address(UDP_Address())
-          {}
-
-UDP_Socket::~UDP_Socket(void) {
-	if (this->sock_fd < 0) {
-		close(this->sock_fd);
-	}
-}
-
-void UDP_Socket::bind(void) {
-        this->bind(this->local_address);
-}
-
 void UDP_Socket::bind(const UDP_Address &address) {
         auto mySockaddr = address.to_sockaddr();
         if (::bind(this->sock_fd, (sockaddr*) &mySockaddr, sizeof(mySockaddr)) != 0) {

@@ -4,10 +4,9 @@
 #include <cstdint>
 #include <exception>
 #include <string>
-#include <vector>
 
-#include <arpa/inet.h>
-#include <stdlib.h>
+#include <unistd.h> // close
+#include <arpa/inet.h> // ntons, ..., inet_ntop, ...
 
 class TimeoutException : public std::exception {};
 
@@ -36,10 +35,11 @@ public:
 
 class UDP_Socket {
         int sock_fd;
-        UDP_Address local_address;
 
 public:
-        UDP_Socket(void);
+        UDP_Address local_address;
+        UDP_Socket(void) : sock_fd(socket(AF_INET, SOCK_DGRAM, 0)),
+		local_address(UDP_Address()) {}
         UDP_Socket(UDP_Socket&) = delete;
 	UDP_Socket(UDP_Socket&& rhs) { *this = std::move(rhs); }
 	UDP_Socket& operator = (UDP_Socket&& rhs) {
@@ -48,9 +48,14 @@ public:
 		this->local_address = rhs.local_address;
 		return *this;
 	}
-        ~UDP_Socket(void);
+        ~UDP_Socket(void) {
+		if (this->sock_fd < 0) {
+			close(this->sock_fd);
+		}
+	}
 
-        void bind(void);
+        inline void bind(void)
+		{ this->bind(this->local_address); }
         void bind(const UDP_Address & local_address);
 
         void set_timeout(std::uint8_t seconds, std::uint32_t microseconds);
