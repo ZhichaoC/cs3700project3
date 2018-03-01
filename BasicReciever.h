@@ -18,6 +18,11 @@ public:
         std::function<void(int)> sent_ack_handler;
         std::function<void(int, int)> recv_data_handler;
 
+         bool is_valid(const MessageClass &message) {
+                return data_message.is_valid() &&
+                       data_message.get_sequence() >= this->sequence;
+        }
+
 	void recieve(std::ostream &stream) {
 		while (1) {
 			try {
@@ -25,17 +30,17 @@ public:
 				std::uint8_t* buffer = (std::uint8_t*)malloc(buffer_len);
 				auto peer_address = this->sock.recvfrom(buffer, &buffer_len);
 				BasicMessage data_message(buffer);
-	  
-				if (data_message.is_valid()) {
+
+				if (this->is_valid(data_message)) {
 					stream.write((char*)data_message.get_data(), data_message.get_length());
 
 					this->recv_data_handler(data_message.get_sequence(), data_message.get_length());
 					this->sent_ack_handler(data_message.get_sequence() + data_message.get_length());
-	
+
 					BasicMessage ack_message(true, data_message.is_eof(), data_message.get_sequence()+data_message.get_length(), 0);
-					
+
 					this->sock.sendto(peer_address, ack_message.data, ack_message.get_total_length());
-	
+
 					if (ack_message.is_eof()) {
 						this->recv_eof_handler();
 						this->completed_handler();
