@@ -61,6 +61,9 @@ public:
                                 }
                                 catch (TimeoutException &e) {
                                       	this->timeout_handler();
+                                        this->sock.sendto(this->peer_addr, data_message.data, data_message.get_total_length());
+                                        this->send_data_handler(this->sequence, data_message.get_length());
+                                        continue;
                                 }
 
                                 MessageClass recv_message(buffer);

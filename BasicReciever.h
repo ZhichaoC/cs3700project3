@@ -52,7 +52,6 @@ public:
 			}
 			catch(TimeoutException &e) {
 				this->timeout_handler();
-				break;
 			}
 		}
 	}
