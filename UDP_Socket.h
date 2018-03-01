@@ -9,6 +9,10 @@
 #include <arpa/inet.h> // ntons, ..., inet_ntop, ...
 
 class TimeoutException : public std::exception {};
+class BadFdException : public std::exception {};
+class InvalidArgsException : public std::exception {};
+class SendToException : public std::exception {};
+class RecvFromException : public std::exception {};
 
 class UDP_Address {
 public:

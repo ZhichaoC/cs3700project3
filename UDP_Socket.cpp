@@ -33,7 +33,12 @@ void UDP_Socket::sendto(const UDP_Address &to, std::uint8_t *data, size_t data_l
         auto sockaddr = to.to_sockaddr();
         if (::sendto(this->sock_fd, data, data_len, 0,
                (struct sockaddr *) &sockaddr, (socklen_t) sizeof(sockaddr)) == -1) {
-               throw 3;
+               if (errno == ENOTSOCK || errno == EBADF){
+                        throw BadFdException();
+                }
+		else if (errno == EMSGSIZE) { throw 1; }
+		else if (errno == EINVAL) { throw InvalidArgsException(); }
+		throw SendToException();
        }
 }
 
@@ -43,11 +48,22 @@ UDP_Address UDP_Socket::recvfrom(std::uint8_t *buffer, std::int64_t *buffer_len)
 	*buffer_len = ::recvfrom(this->sock_fd, buffer, *buffer_len, 0,
                  (struct sockaddr *) &sockaddr, &sockaddr_size); 
         if (*buffer_len == -1) {
-                if (errno == ETIMEDOUT) {
+                if (errno == EAGAIN) {
                         throw TimeoutException();
-                } else {
-                        throw 4;
                 }
+		else if (errno == ENOTSOCK || errno == EBADF) {
+                        throw BadFdException();
+                }
+		else if (errno == EINVAL) {
+			throw 1;
+		}
+		else if (errno == EINTR) {
+			throw 1.2;
+		}
+		else if (errno == EFAULT) { throw 'c'; }
+		else {	
+			throw RecvFromException();
+		}
          }
 
 	return UDP_Address::from_sockaddr(sockaddr);

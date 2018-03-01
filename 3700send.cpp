@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
 
         UDP_Socket mySocket;
         mySocket.bind();
-        mySocket.set_timeout(30/*sec*/, 0 /*usec*/);
+        mySocket.set_timeout(2/*sec*/, 0 /*usec*/);
 
         UDP_Address peer_addr(ip_s, atoi(port_s));
 

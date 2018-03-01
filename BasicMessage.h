@@ -29,6 +29,8 @@ private:
 	inline Header& header_ref(void) {return (Header&)*data; }
 
 public:
+        BasicMessage(void)
+        	: BasicMessage(false, false, 0, 0) {};
         BasicMessage(bool ack, bool eof, SequenceType sequence)
         	: BasicMessage(ack, eof, sequence, 0) {};
         BasicMessage(bool ack, bool eof, SequenceType sequence, size_t mss)
@@ -37,6 +39,17 @@ public:
 	}
         BasicMessage(std::uint8_t *data) : data(data) {}
 	~BasicMessage(void) { if (data != nullptr) { free(data); } }
+
+	// Copy ctor sucks for wrapped pointers, don't bother
+        BasicMessage(BasicMessage&) = delete;
+	BasicMessage(BasicMessage&& rhs) { *this = std::move(rhs); }
+	BasicMessage& operator = (BasicMessage&& rhs) {
+		free(this->data);
+		this->data = rhs.data;
+		rhs.data = nullptr;
+		return *this;
+	}
+	
 
 	/**
 	 *  Accessors and Setters
