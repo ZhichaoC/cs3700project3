@@ -39,12 +39,18 @@ public:
 	}
         BasicMessage(std::uint8_t *data) : data(data) {}
 	~BasicMessage(void) { if (data != nullptr) { free(data); } }
+//   BasicMessage(const BasicMessage &src) {
+//     this->data = (std::uint8_t*)malloc(sizeof(src.data));
+//     this->data = src.data;
+//     this->header_ref() = (src.get_magic(), src.is_ack(), src.is_eof(), src.get_length(), src.get_sequence());
+//   };
 
 	// Copy ctor sucks for wrapped pointers, don't bother
-        BasicMessage(BasicMessage&) = delete;
+       BasicMessage(BasicMessage&) = delete;
 	BasicMessage(BasicMessage&& rhs) { *this = std::move(rhs); }
 	BasicMessage& operator = (BasicMessage&& rhs) {
 		free(this->data);
+    this->data = (std::uint8_t*)malloc(sizeof(rhs.data));
 		this->data = rhs.data;
 		rhs.data = nullptr;
 		return *this;
