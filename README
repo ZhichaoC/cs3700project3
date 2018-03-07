@@ -1,0 +1,5 @@
+High Level Approach:
+We take user input and extract mss bytes each time to create a packet. Then we send fixed amount of packets(in this program 50) without acking. Receiver would ack every packet it receives. In addition, we use map to keep track of which packets have been sent/received to avoid duplications. In the sender, every time receive an ack, removes the corresponding packet from the map, keep doing it until the map is empty. If time out, resend all the packets in the map. In the receiver, add to its map every time receive a new packet. After receiving the eof message, iterate through the map and print out the data(so no duplication and out of order).
+
+Challenge and Testing:
+Since we write the program in C++, we have to take care of the memory management. We spent days on double free, null pointer, and memory corruption. We tested the program by running it in order to solve the problem we mentioned above. We keep running the testing script over and over to find out bugs in our code: out of order, packets not being sent... Testing is the only way to find and solve bugs.

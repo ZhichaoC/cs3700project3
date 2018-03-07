@@ -17,20 +17,22 @@
 
 
 int main(int argc, char *argv[]) {
+        //manage user input
         char *tmp = (char *) malloc(strlen(argv[1])+1);
         strcpy(tmp, argv[1]);
 
         char *ip_s = strtok(tmp, ":");
         char *port_s = strtok(NULL, ":");
-
+        
+        //create socket and set timeout
         UDP_Socket mySocket;
         mySocket.bind();
-        mySocket.set_timeout(2/*sec*/, 0 /*usec*/);
+        mySocket.set_timeout(3/*sec*/, 0/*usec*/);
 
         UDP_Address peer_addr(ip_s, atoi(port_s));
-
+        //initialize the sender
         BasicSender<BasicMessage> sender(1460, peer_addr, std::move(mySocket));
-
+        //implement the handlers(from header file)
         sender.timeout_handler = []
 		{ mylog("[error] timeout occurred\n"); };
         sender.corrupt_ack_handler = [](int magic, int sequence)
@@ -43,8 +45,8 @@ int main(int argc, char *argv[]) {
 		{ mylog("[send eof]\n"); };
         sender.send_data_handler = [](int sequence, int data_len)
 		{ mylog("[send data] %d (%d)\n", sequence, data_len); };
-
-	sender.transmit(std::cin);
+      //start receiving messages
+	    sender.transmit(std::cin);
 
         return 0;
 }

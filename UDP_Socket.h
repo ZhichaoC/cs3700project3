@@ -22,12 +22,14 @@ public:
 	UDP_Address() : ip(std::string("0.0.0.0")), port(0) {}
 	UDP_Address(std::string ip, std::uint16_t port) : ip(ip), port(port) {}
 
+        //what address does the messge come from
         inline static UDP_Address from_sockaddr(const sockaddr_in & sockaddr) {
 		char addr[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &sockaddr.sin_addr.s_addr, addr, INET_ADDRSTRLEN);
 		return UDP_Address(std::string(addr), ntohs(sockaddr.sin_port));
         }
 
+        //create sockaddr
         inline sockaddr_in to_sockaddr(void) const {
                 sockaddr_in sockaddr;
 		sockaddr.sin_family = AF_INET;

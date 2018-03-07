@@ -8,6 +8,7 @@
 
 #include "UDP_Socket.h"
 
+//bind
 void UDP_Socket::bind(const UDP_Address &address) {
         auto mySockaddr = address.to_sockaddr();
         if (::bind(this->sock_fd, (sockaddr*) &mySockaddr, sizeof(mySockaddr)) != 0) {
@@ -22,6 +23,7 @@ void UDP_Socket::bind(const UDP_Address &address) {
         this->local_address = UDP_Address::from_sockaddr(mySockaddr);
 }
 
+//set time out
 void UDP_Socket::set_timeout(std::uint8_t seconds, std::uint32_t microseconds) {
         timeval tv = {seconds, microseconds};
         if (setsockopt(this->sock_fd, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
@@ -29,6 +31,7 @@ void UDP_Socket::set_timeout(std::uint8_t seconds, std::uint32_t microseconds) {
         }
 }
 
+//send message to destination
 void UDP_Socket::sendto(const UDP_Address &to, std::uint8_t *data, size_t data_len) {
         auto sockaddr = to.to_sockaddr();
         if (::sendto(this->sock_fd, data, data_len, 0,
@@ -42,6 +45,7 @@ void UDP_Socket::sendto(const UDP_Address &to, std::uint8_t *data, size_t data_l
        }
 }
 
+//receive the messge from
 UDP_Address UDP_Socket::recvfrom(std::uint8_t *buffer, std::int64_t *buffer_len) {
         struct sockaddr_in sockaddr;
 	socklen_t sockaddr_size = sizeof(sockaddr_in);

@@ -38,12 +38,7 @@ public:
 		this->header_ref() = {MAGIC, ack, eof, 0, htonl(sequence)};
 	}
         BasicMessage(std::uint8_t *data) : data(data) {}
-	~BasicMessage(void) { if (data != nullptr) { free(data); } }
-//   BasicMessage(const BasicMessage &src) {
-//     this->data = (std::uint8_t*)malloc(sizeof(src.data));
-//     this->data = src.data;
-//     this->header_ref() = (src.get_magic(), src.is_ack(), src.is_eof(), src.get_length(), src.get_sequence());
-//   };
+	~BasicMessage(void) {}
 
 	// Copy ctor sucks for wrapped pointers, don't bother
        BasicMessage(BasicMessage&) = delete;
@@ -90,8 +85,8 @@ public:
 	 * Conditions, data pointer, total length of message
 	 */
 
-	inline bool is_valid(void) const
-                { return this->get_magic() == BasicMessage::MAGIC; }
+	inline bool is_valid(void) const{ 
+  return this->get_magic() == BasicMessage::MAGIC; }
 
 	inline std::uint8_t *get_data(void)
 		{ return this->data + sizeof(Header); }

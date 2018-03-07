@@ -12,9 +12,9 @@ my $LIVE = 0;
 my $DATA_SIZE = 1000;
 my $TIMEOUT = 30;
 
-if (! ((hostname() eq "cs3600tcp") || (hostname() eq "gordon.ccs.neu.edu"))) {
-  die("Error: This script can only be run on cs3600tcp");
-}
+#if (! ((hostname() eq "cs3600tcp") || (hostname() eq "gordon.ccs.neu.edu"))) {
+#  die("Error: This script can only be run on cs3600tcp");
+#}
 
 if (! ((-e "3700send") && (-e "3700recv"))) {
   die("Error: Could not find executables");
